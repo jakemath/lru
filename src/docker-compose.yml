@@ -1,0 +1,11 @@
+# Author: Jake Mathai
+# Purpose: Docker container config
+version: "3"
+services:
+  py:
+    container_name: py
+    build:
+      context: .
+      dockerfile: Dockerfile
+    tty: true
+    command: python test.py

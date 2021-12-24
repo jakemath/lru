@@ -8,4 +8,4 @@ services:
       context: .
       dockerfile: Dockerfile
     tty: true
-    command: python test.py
+    command: bash

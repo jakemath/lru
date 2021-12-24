@@ -6,119 +6,63 @@ Purpose: LRU implementation
 #include <iostream>
 #include <unordered_map>
 #include <list>
+#include <Python.h>
 
-class Object {
-    public:
-        Object() {}
-        template <class T> Object(const T& v);
-        Object(const Object& o);
-        
-        struct AbstractObject {
-            virtual ~AbstractObject() {}
-            virtual void* get_data() { return 0; }
-            virtual void* get_type() { return 0; }
-            virtual AbstractObject* clone() const { return 0; }
-        };
-
-        template <class T> 
-        struct ConcreteObject : public AbstractObject {
-            T data;
-            static int type;
-            ConcreteObject(const T& v): data(v) {}
-            virtual ~ConcreteObject () {}
-            virtual void* get_data() { return &data; }
-            virtual void* get_type() { return &type; }
-            virtual ConcreteObject* clone() const { return new ConcreteObject<T>(data); }
-            static void* get_type_static() { return &type; }
-        };
-        AbstractObject* object;
-};
-
-template <class T> 
-Object::Object(const T& v) { 
-    object = new ConcreteObject<T>(v); 
-};
-
-Object::Object(const Object& o) {
-    object = o.object -> clone();
-}
-
-template <class T>
-int Object::ConcreteObject<T>::type;
-
+template <class Key, class Value>
 class LRU {
     public:
-        LRU();
-        LRU(unsigned long long _max_size);
-        Object* get(Object* key);
-        Object* operator[](Object* key);
-        void set(Object* key, Object* value);
-        void insert(Object* key, Object* value);
-        void remove(Object* key);
-        void erase(Object* key);
-        unsigned long long size;
+        typedef typename std::list<Value>::iterator ValueIter;
+        
+        LRU<Key, Value>(unsigned long long _max_size);
+        Value get(Key key);
+        void set(Key key, Value value);
+        void remove(Key key);
         unsigned long long max_size;
-        std::list<Object*> items;
-        std::unordered_map<Object*, std::list<Object*>::iterator> table;
+        std::list<Value> items;
+        std::unordered_map<Key, ValueIter> table;
 };
 
-LRU::LRU() {};
-
-LRU::LRU(unsigned long long _max_size) {
+template <class Key, class Value>
+LRU<Key, Value>::LRU(unsigned long long _max_size) {
     max_size = _max_size;
 }
 
-Object* LRU::get(Object* key) {
-    std::unordered_map<Object*, std::list<Object*>::iterator>::iterator table_iterator = table.find(key);
+template <class Key, class Value>
+Value LRU<Key, Value>::get(Key key) {
+    auto table_iterator = table.find(key);
     if (table_iterator == table.end())
         return nullptr;
     return *(table_iterator -> second);
 }
 
-void LRU::set(Object* key, Object* value) {
+template <class Key, class Value>
+void LRU<Key, Value>::set(Key key, Value value) {
     if (items.size() >= max_size)
         items.pop_back();
     items.push_front(value);
-    table.insert(std::pair<Object*, std::list<Object*>::iterator>(key, items.begin()));
-    size = items.size();
+    table[key] = items.begin();
 }
 
-void LRU::insert(Object* key, Object* value) {
-    set(key, value);
-}
-
-void LRU::remove(Object* key) {
-    std::unordered_map<Object*, std::list<Object*>::iterator>::iterator table_iterator = table.find(key);
-    if (table_iterator == table.end())
+template <class Key, class Value>
+void LRU<Key, Value>::remove(Key key) {
+    auto table_iterator = table.find(key);
+    if (table_iterator != table.end())
         return;
     items.erase(table_iterator -> second);
-}
-
-void LRU::erase(Object* key) {
-    remove(key);
-}
-
-Object* LRU::operator[](Object* key) {
-    return get(key);
+    table.erase(table_iterator);
 }
 
 extern "C" {
-    LRU* create(unsigned long long max_size) { 
-        return new LRU(max_size);
+    LRU<PyObject*, PyObject*>* create(unsigned long long max_size) { 
+        return new LRU<PyObject*, PyObject*>(max_size);
     }
-    Object* get(LRU* cache, Object* key) {
+    PyObject* get(LRU<PyObject*, PyObject*>* cache, PyObject* key) {
         return cache -> get(key);
     }
-    void set(LRU* cache, Object* key, Object* value) {
+    void set(LRU<PyObject*, PyObject*>* cache, PyObject* key, PyObject* value) {
         cache -> set(key, value);
     }
-    void print(LRU* cache) {
-        std::list<Object*>::iterator i = cache -> items.begin();
-        for (; i != cache -> items.end(); ++i) {
-            std::cout << *i << std::endl;
-        }
-    }
-    unsigned long long size(LRU* cache) {
-        return cache -> size;
+    unsigned long long size(LRU<PyObject*, PyObject*>* cache) {
+        return cache -> items.size();
     }
 }

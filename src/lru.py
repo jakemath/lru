@@ -10,12 +10,10 @@ lib = ctypes.cdll.LoadLibrary('/src/liblru.so')
 
 lib.create.argtypes = [ctypes.c_ulonglong]
 lib.create.restype = ctypes.c_void_p
-lib.get.argtypes = [ctypes.c_void_p]
-lib.get.restype = ctypes.c_void_p
-lib.set.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-lib.set.restype = ctypes.c_void_p
-lib.print.argtypes = [ctypes.c_void_p]
-lib.print.restype = ctypes.c_void_p
+lib.get.argtypes = [ctypes.py_object]
+lib.get.restype = ctypes.py_object
+lib.set.argtypes = [ctypes.c_void_p, ctypes.py_object, ctypes.py_object]
+lib.set.restype = None
 lib.size.argtypes = [ctypes.c_void_p]
 lib.size.restype = ctypes.c_ulonglong
 
@@ -26,13 +24,10 @@ class LRU:
         self.cache = lib.create(max_size)
 
     def get(self, key):
-        return lib.get(self.cache, key)
+        return lib.get(self.cache, ctypes.py_object(key))
     
     def set(self, key, value):
-        return lib.set(self.cache, key, value)
-
-    def print(self):
-        lib.print(self.cache)
+        lib.set(self.cache, ctypes.py_object(key), ctypes.py_object(value))
 
     def size(self):
         return lib.size(self.cache)
